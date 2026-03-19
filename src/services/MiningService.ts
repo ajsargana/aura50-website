@@ -86,7 +86,8 @@ export class MiningService {
   private lastDeviceMetricsCheck: number = 0; // Track last device metrics update
   private lastBlockCheck: number = 0; // Track last block status check
   private blockChangeListener: ((block: any) => void) | null = null; // WebSocket block-change handler
-  private sessionHashCount: number = 0; // Persistent counter across all concurrent mining loops
+  private sessionHashCount: number = 0;   // Persistent counter across all concurrent mining loops
+  private sessionShareCount: number = 0;  // Shares submitted in the current block (max 4)
   private _rateWindowHashes: number = 0;
   private _rateWindowStart: number = 0;
 
@@ -272,6 +273,7 @@ export class MiningService {
 
       // Reset counters for new block
       this.sessionHashCount = 0;
+      this.sessionShareCount = 0;
       this._rateWindowHashes = 0;
       this._rateWindowStart = 0;
       this.lastDebugLog = 0;
@@ -290,7 +292,7 @@ export class MiningService {
         sessionId: this.currentSession.id,
         blockId: blockId.substring(0, 8),
         difficulty: this.currentBlockInfo.difficulty,
-        expectedTime: `~${Math.round((this.currentBlockInfo.difficulty || 700000) / 25000)}s at 25K H/s`
+        expectedTime: `~${Math.round((this.currentBlockInfo.difficulty || 30000) / 1500)}s at 1.5K H/s`
       });
       return true;
 
@@ -389,7 +391,7 @@ export class MiningService {
       const blockData = await this.getBlockData();
       if (!this.isMining || !this.currentSession) break;
 
-      const difficulty      = this.currentBlockInfo?.difficulty || 1_500_000;
+      const difficulty      = this.currentBlockInfo?.difficulty || 30_000;
       const targetThreshold = this.currentBlockInfo?.targetThreshold ||
                               this.calculateTargetThreshold(difficulty);
 
@@ -471,7 +473,7 @@ export class MiningService {
     const tick = () => {
       if (!this.isMining || !this.currentSession) return; // exit if stopped
 
-      const difficulty      = this.currentBlockInfo?.difficulty || 1_500_000;
+      const difficulty      = this.currentBlockInfo?.difficulty || 30_000;
       const targetThreshold = this.currentBlockInfo?.targetThreshold ||
                               this.calculateTargetThreshold(difficulty);
       // Convert timestamp to milliseconds number (same as getBlockData()) to ensure
@@ -617,7 +619,7 @@ export class MiningService {
             elapsedSec: elapsedSec.toFixed(0),
             hashRate: hashRate.toFixed(0) + ' H/s',
             expectedHashes: this.currentBlockInfo.difficulty?.toLocaleString(),
-            progress: ((session.hashesComputed / (this.currentBlockInfo.difficulty || 700000)) * 100).toFixed(1) + '%',
+            progress: ((session.hashesComputed / (this.currentBlockInfo.difficulty || 30_000)) * 100).toFixed(1) + '%',
           });
         }
       }
@@ -647,7 +649,7 @@ export class MiningService {
 
       // NUMERIC TARGET: Get target threshold from server (or calculate from difficulty)
       // difficulty = average attempts needed, target = MAX_HASH / difficulty
-      const difficulty = this.currentBlockInfo?.difficulty || 700000; // 1.5M hashes avg
+      const difficulty = this.currentBlockInfo?.difficulty || 30_000;
       const targetThreshold = this.currentBlockInfo?.targetThreshold || this.calculateTargetThreshold(difficulty);
 
       // Validate target threshold
@@ -917,7 +919,7 @@ export class MiningService {
   private calculateTargetThreshold(difficulty: number): string {
     // Validate difficulty
     if (!difficulty || difficulty <= 0 || !Number.isFinite(difficulty)) {
-      difficulty = 700000; // Default to 2M
+      difficulty = 30_000; // Matches VARDIFF_DEFAULT on server
     }
 
     try {
@@ -988,15 +990,10 @@ export class MiningService {
       );
       return hash; // Returns lowercase hex string
     } catch (error) {
-      console.error('Hash computation error:', error);
-      // Fallback to simple hash if crypto fails (should never happen)
-      let hash = 0;
-      for (let i = 0; i < input.length; i++) {
-        const char = input.charCodeAt(i);
-        hash = ((hash << 5) - hash) + char;
-        hash = hash & hash;
-      }
-      return Math.abs(hash).toString(16).padStart(8, '0');
+      // expo-crypto is unavailable — do NOT fall back to a weak hash.
+      // The server requires a 64-char SHA-256; returning a garbage 8-char hash
+      // would silently waste CPU and never produce a valid proof.
+      throw new Error(`[MiningService] expo-crypto unavailable — cannot compute SHA-256: ${error}`);
     }
   }
 
@@ -1014,9 +1011,7 @@ export class MiningService {
         return;
       }
 
-      // Use difficulty from server (stored in currentBlockInfo)
-      // NUMERIC TARGET: 2,000,000 = ~2M hashes average
-      const difficulty = this.currentBlockInfo?.difficulty || 700000;
+      const difficulty = this.currentBlockInfo?.difficulty || 30_000;
 
       // Calculate hash rate data for security detection
       const timeElapsed = Date.now() - this.currentSession.startTime.getTime();
@@ -1040,23 +1035,35 @@ export class MiningService {
       });
 
       if (shareResult.accepted) {
-        console.log('✅ Mining share accepted! Block height:', shareResult.blockHeight);
-        console.log('   Participants in block:', shareResult.acceptedShares);
-        console.log('   Reward will be distributed when block settles (every 2 min)');
+        this.sessionShareCount++;
+        const MAX_SHARES_PER_BLOCK = 4;
 
-        // Record successful mining for local cooldown cache
-        await this.recordMiningSuccess();
+        console.log(`✅ Share ${this.sessionShareCount}/${MAX_SHARES_PER_BLOCK} accepted! Block: ${shareResult.blockHeight}`);
 
-        // Schedule a notification for when the per-block cooldown (forge limit) resets.
-        // The cooldown window matches COOLDOWN_DURATION in checkMiningCooldown (120 000 ms).
-        const MINING_COOLDOWN_DURATION = 120000; // 2 minutes — keep in sync with checkMiningCooldown
-        const resetTimestamp = Date.now() + MINING_COOLDOWN_DURATION;
-        NotificationService.getInstance()
-          .scheduleLimitResetNotification(resetTimestamp)
-          .catch(() => { /* non-critical — ignore notification errors */ });
+        // Apply server-calculated vardiff for next share in this block
+        if (shareResult.nextDifficulty && this.currentBlockInfo) {
+          this.currentBlockInfo.difficulty = shareResult.nextDifficulty;
+          this.currentBlockInfo.targetThreshold = this.calculateTargetThreshold(shareResult.nextDifficulty);
+          console.log(`🎯 Vardiff updated: ${shareResult.nextDifficulty.toLocaleString()}`);
+        }
 
-        // STOP mining for current block (already submitted our share)
-        console.log('⏸️ Stopping mining - waiting for next block...');
+        // On first share: record cooldown + schedule notification
+        if (this.sessionShareCount === 1) {
+          await this.recordMiningSuccess();
+          const resetTimestamp = Date.now() + 120_000;
+          NotificationService.getInstance()
+            .scheduleLimitResetNotification(resetTimestamp)
+            .catch(() => {});
+        }
+
+        // Keep mining until we hit the per-block cap
+        if (this.sessionShareCount < MAX_SHARES_PER_BLOCK) {
+          console.log(`⛏️ Continuing — ${MAX_SHARES_PER_BLOCK - this.sessionShareCount} more shares possible this block`);
+          return; // stay in mining loop
+        }
+
+        // Hit the cap — stop and wait for next block
+        console.log(`⏸️ ${MAX_SHARES_PER_BLOCK} shares submitted — waiting for next block...`);
 
         // Store current block ID BEFORE stopping (session will be cleared)
         const currentBlockId = this.currentSession.blockId;
@@ -1172,7 +1179,35 @@ export class MiningService {
             }
           }, 3 * 60 * 1000);
 
-        // Case 2: Block is final or not accepting shares
+        // Case 2: Global block share cap hit (100,000 shares) — notify user and wait
+        } else if (reason.toLowerCase().includes('block is full') || reason.toLowerCase().includes('maximum shares reached')) {
+          console.log('🚫 Block hit 100k share cap — notifying user and waiting for next block');
+          NotificationService.getInstance()
+            .triggerBlockFullNotification()
+            .catch(() => {});
+          await this.stopMining();
+          // Wait for next block via WebSocket (same pattern as Case 1)
+          const blockFullBlockId = this.currentSession?.blockId;
+          const networkBF = NetworkService.getInstance();
+          let resolvedBF = false;
+          const onNewBlockBF = async (newBlock: any) => {
+            if (resolvedBF || newBlock?.id === blockFullBlockId) return;
+            resolvedBF = true;
+            networkBF.off('newBlock', onNewBlockBF);
+            clearTimeout(fallbackTimerBF);
+            console.log('🆕 New block — resuming mining after block-full pause');
+            await this.startMining();
+          };
+          networkBF.on('newBlock', onNewBlockBF);
+          const fallbackTimerBF = setTimeout(async () => {
+            if (resolvedBF) return;
+            resolvedBF = true;
+            networkBF.off('newBlock', onNewBlockBF);
+            const newId = await this.getCurrentBlockId();
+            if (newId !== blockFullBlockId) await this.startMining();
+          }, 3 * 60 * 1000);
+
+        // Case 3: Block is final or not accepting shares
         } else if (reason.toLowerCase().includes('block is final') || reason.toLowerCase().includes('not accepting shares')) {
           console.log('🔄 Block finalized - will restart mining on new block');
 
@@ -1308,7 +1343,7 @@ export class MiningService {
 
   private async getDifficultyTarget(): Promise<string> {
     // NUMERIC TARGET: Get from server or calculate from difficulty
-    const difficulty = this.currentBlockInfo?.difficulty || 700000;
+    const difficulty = this.currentBlockInfo?.difficulty || 30_000;
     return this.currentBlockInfo?.targetThreshold || this.calculateTargetThreshold(difficulty);
   }
 

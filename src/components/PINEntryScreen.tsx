@@ -10,6 +10,14 @@ export const PINEntryScreen = ({ navigation, route }: any) => {
   const [newPin, setNewPin] = useState('');
   const [confirmPin, setConfirmPin] = useState('');
 
+  useEffect(() => {
+    if (mode === 'change') {
+      SecureStore.getItemAsync('user_pin').then(pin => {
+        if (!pin) setStep('new');
+      });
+    }
+  }, []);
+
   const getActivePin = () => {
     if (step === 'current') return currentPin;
     if (step === 'new') return newPin;
@@ -19,7 +27,7 @@ export const PINEntryScreen = ({ navigation, route }: any) => {
   const getTitle = () => {
     if (mode === 'change') {
       if (step === 'current') return 'Enter Current PIN';
-      if (step === 'new') return 'Enter New PIN';
+      if (step === 'new') return 'Set New PIN';
       return 'Confirm New PIN';
     }
     // auth mode

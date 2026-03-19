@@ -155,6 +155,68 @@ class NotificationService {
     } catch { /* ignore — may not have permission */ }
   }
 
+  /**
+   * Called when a mining epoch is finalized and the user has a reward ready to claim.
+   * Fires immediately — works in foreground and background.
+   */
+  async triggerEpochRewardNotification(epochId: number, totalReward: string, participantCount: number): Promise<void> {
+    const enabled = await this.isEnabled();
+    if (!enabled) return;
+
+    const amount = parseFloat(totalReward).toLocaleString('en-US', { maximumFractionDigits: 4 });
+    const title = `Mining reward ready — ${amount} A50`;
+    const body  = `Epoch #${epochId} finalized with ${participantCount} miners. Tap to claim your share.`;
+
+    await this.storeNotification({
+      type: 'mining_reward',
+      title,
+      body,
+      data: { epochId, totalReward, participantCount },
+    });
+
+    if (!Notifications) return;
+    try {
+      await this.setupAndroidChannel();
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: 'coin_received.wav',
+          data: { type: 'mining_reward', epochId, totalReward },
+          ...(Platform.OS === 'android' ? { channelId: 'aura50-mining' } : {}),
+        },
+        trigger: null, // fire immediately
+      });
+    } catch { /* ignore — may not have permission */ }
+  }
+
+  async triggerBlockFullNotification(): Promise<void> {
+    const title = 'Block is full — 100,000 shares reached';
+    const body  = 'This block hit its share limit. Mining has paused — you\'ll be notified when the next block opens.';
+
+    await this.storeNotification({
+      type: 'mining_reward',
+      title,
+      body,
+      data: { type: 'block_full' },
+    });
+
+    if (!Notifications) return;
+    try {
+      await this.setupAndroidChannel();
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: 'coin_received.wav',
+          data: { type: 'block_full' },
+          ...(Platform.OS === 'android' ? { channelId: 'aura50-mining' } : {}),
+        },
+        trigger: null, // fire immediately
+      });
+    } catch { /* ignore — may not have permission */ }
+  }
+
   async triggerCoinSentNotification(amount: string, toAddress: string, txId?: string): Promise<void> {
     const shortTo = toAddress.length > 14
       ? `${toAddress.slice(0, 6)}...${toAddress.slice(-4)}`

@@ -6,7 +6,18 @@
  * Reduces bandwidth by ~20-30%
  */
 
-import { MobileOptimizedProof } from './LightProofVerifier';
+/** @deprecated Legacy proof format — not compatible with current server protocol */
+interface MobileOptimizedProof {
+  userId: string;
+  amount: string;
+  blockHeight: number;
+  spatialProof: string[];
+  spatialRoot: string;
+  temporalRoot: string;
+  checkpointHeight: number;
+  trustLevel: number;
+  compressionAge: number;
+}
 
 export class BinaryProofEncoder {
 

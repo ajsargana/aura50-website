@@ -1,15 +1,13 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
   Alert,
-  Platform,
   ScrollView,
   Image,
 } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
 import * as SecureStore from 'expo-secure-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
@@ -20,87 +18,18 @@ interface AuthScreenProps {
 }
 
 export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, navigation }) => {
-  const [isBiometricSupported, setIsBiometricSupported] = useState(false);
-  const [biometricTypes, setBiometricTypes] = useState<LocalAuthentication.AuthenticationType[]>([]);
-  const [isAuthenticating, setIsAuthenticating] = useState(false);
-
-  useEffect(() => {
-    checkBiometricSupport();
-  }, []);
-
-  const checkBiometricSupport = async () => {
-    try {
-      const compatible = await LocalAuthentication.hasHardwareAsync();
-      const enrolled = await LocalAuthentication.isEnrolledAsync();
-      const types = await LocalAuthentication.supportedAuthenticationTypesAsync();
-
-      setIsBiometricSupported(compatible && enrolled);
-      setBiometricTypes(types);
-
-      console.log('Biometric support:', { compatible, enrolled, types });
-    } catch (error) {
-      console.error('Error checking biometric support:', error);
-      setIsBiometricSupported(false);
-    }
-  };
-
-  const authenticateWithBiometrics = async () => {
-    if (!isBiometricSupported) {
-      Alert.alert('Biometric Not Available', 'Biometric authentication is not available on this device.');
+  const authenticateWithPIN = async () => {
+    const storedPin = await SecureStore.getItemAsync('user_pin');
+    if (!storedPin) {
+      Alert.alert('No PIN Set', 'You have not set up a PIN yet. Please go to Settings → Change PIN to create one.');
       return;
     }
-
-    try {
-      setIsAuthenticating(true);
-
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Authenticate to access your Aura50 wallet',
-        fallbackLabel: 'Use Passcode',
-        cancelLabel: 'Cancel',
-        disableDeviceFallback: false,
-      });
-
-      if (result.success) {
-        await saveAuthenticationState();
-        onAuthenticated();
-      } else {
-        Alert.alert('Authentication Failed', 'Please try again or use alternative authentication.');
-      }
-    } catch (error) {
-      console.error('Biometric authentication error:', error);
-      Alert.alert('Authentication Error', 'An error occurred during authentication.');
-    } finally {
-      setIsAuthenticating(false);
-    }
-  };
-
-  const authenticateWithPIN = () => {
-    // Navigate to PIN entry screen
     navigation.navigate('PINEntry', {
       onSuccess: () => {
         saveAuthenticationState();
         onAuthenticated();
       }
     });
-  };
-
-  const setupBiometrics = async () => {
-    try {
-      const result = await LocalAuthentication.authenticateAsync({
-        promptMessage: 'Set up biometric authentication for Aura50',
-        fallbackLabel: 'Cancel',
-        disableDeviceFallback: true,
-      });
-
-      if (result.success) {
-        await SecureStore.setItemAsync('biometric_enabled', 'true');
-        Alert.alert('Biometric Setup', 'Biometric authentication has been enabled for your wallet.');
-        await checkBiometricSupport();
-      }
-    } catch (error) {
-      console.error('Biometric setup error:', error);
-      Alert.alert('Setup Error', 'Failed to set up biometric authentication.');
-    }
   };
 
   const createNewWallet = () => {
@@ -117,24 +46,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, navigat
     } catch (error) {
       console.error('Failed to save auth state:', error);
     }
-  };
-
-  const getBiometricIcon = (): string => {
-    if (biometricTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-      return 'scan';
-    } else if (biometricTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-      return 'finger-print';
-    }
-    return 'shield-checkmark';
-  };
-
-  const getBiometricText = (): string => {
-    if (biometricTypes.includes(LocalAuthentication.AuthenticationType.FACIAL_RECOGNITION)) {
-      return 'Face ID';
-    } else if (biometricTypes.includes(LocalAuthentication.AuthenticationType.FINGERPRINT)) {
-      return 'Fingerprint';
-    }
-    return 'Biometric';
   };
 
   return (
@@ -164,22 +75,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, navigat
         <View style={styles.authContainer}>
           <Text style={styles.authTitle}>Secure Access</Text>
 
-          {/* Biometric Authentication */}
-          {isBiometricSupported && (
-            <TouchableOpacity
-              style={styles.authButton}
-              onPress={authenticateWithBiometrics}
-              disabled={isAuthenticating}
-            >
-              <View style={styles.authButtonContent}>
-                <Ionicons name={getBiometricIcon()} size={24} color="#667eea" />
-                <Text style={styles.authButtonText}>
-                  {isAuthenticating ? 'Authenticating...' : `Use ${getBiometricText()}`}
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
-
           {/* PIN Authentication */}
           <TouchableOpacity
             style={styles.authButton}
@@ -190,21 +85,6 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthenticated, navigat
               <Text style={styles.authButtonText}>Enter PIN</Text>
             </View>
           </TouchableOpacity>
-
-          {/* Enable Biometrics (if not already enabled) */}
-          {!isBiometricSupported && Platform.OS !== 'web' && (
-            <TouchableOpacity
-              style={[styles.authButton, styles.secondaryButton]}
-              onPress={setupBiometrics}
-            >
-              <View style={styles.authButtonContent}>
-                <Ionicons name="shield-checkmark" size={24} color="#95A5A6" />
-                <Text style={[styles.authButtonText, styles.secondaryButtonText]}>
-                  Enable Biometrics
-                </Text>
-              </View>
-            </TouchableOpacity>
-          )}
         </View>
 
         {/* Wallet Management */}
@@ -340,14 +220,6 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#2C3E50',
     marginLeft: 12,
-  },
-  secondaryButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.3)',
-  },
-  secondaryButtonText: {
-    color: 'rgba(255, 255, 255, 0.8)',
   },
   walletContainer: {
     marginVertical: 16,

@@ -53,7 +53,7 @@ export const ProfileEditScreen: React.FC<ProfileEditScreenProps> = ({ navigation
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ImagePicker.MediaType.Images,
       // allowsEditing disabled: Android's crop editor returns canceled even on
       // success in expo-image-picker v55, causing the image to never save.
       // The circular container handles visual cropping via borderRadius + overflow.

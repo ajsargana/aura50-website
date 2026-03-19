@@ -15,6 +15,10 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { NetworkService } from './NetworkService';
 import { EnhancedWalletService } from './EnhancedWalletService';
+import { secp256k1 } from '@noble/secp256k1';
+import { sha256 } from '@noble/hashes/sha2.js';
+import { bytesToHex, hexToBytes } from '@noble/hashes/utils.js';
+import { getOrCreatePeerIdentity } from '../lib/p2p/PeerIdentity';
 
 // Vote on a block
 export interface BlockVote {
@@ -35,6 +39,8 @@ export interface BlockVote {
     layer8_pow: boolean;
   };
   signature: string;
+  /** secp256k1 compressed public key hex (33 bytes) — required for signature verification */
+  publicKeyHex?: string;
 }
 
 // Aggregated consensus result
@@ -68,6 +74,7 @@ export class ConsensusParticipation {
   private networkService: NetworkService;
   private walletService: EnhancedWalletService;
   private validatorId: string;
+  private privateKeyHex: string | null = null; // secp256k1 private key from PeerIdentity
   private validatorReputation: number = 50;
   private votingEnabled: boolean = true;
 
@@ -96,6 +103,11 @@ export class ConsensusParticipation {
     this.walletService = EnhancedWalletService.getInstance();
     this.validatorId = this.generateValidatorId();
     this.loadState();
+    // Load PeerIdentity key for real secp256k1 signing (T1-8 fix)
+    getOrCreatePeerIdentity().then(identity => {
+      this.privateKeyHex = identity.privateKeyHex;
+      this.validatorId = identity.nodeId; // stable, peer-consistent ID
+    }).catch(() => { /* use random fallback validatorId — signing will be skipped */ });
   }
 
   static getInstance(): ConsensusParticipation {
@@ -148,8 +160,11 @@ export class ConsensusParticipation {
       signature: '', // Will be set below
     };
 
-    // Sign the vote cryptographically
+    // Sign the vote cryptographically and embed public key for receiver verification
     vote.signature = await this.signVote(vote);
+    if (this.privateKeyHex) {
+      vote.publicKeyHex = bytesToHex(secp256k1.getPublicKey(hexToBytes(this.privateKeyHex)));
+    }
 
     // Store vote locally
     this.myVotes.set(blockHeight, vote);
@@ -240,10 +255,11 @@ export class ConsensusParticipation {
   }
 
   /**
-   * Sign a vote cryptographically
+   * Sign a vote with secp256k1 ECDSA using the node's PeerIdentity private key.
+   * The compact signature (64 bytes hex) is unforgeable without the private key.
+   * Public key is embedded in the vote so receivers can verify without a registry.
    */
   private async signVote(vote: BlockVote): Promise<string> {
-    // Create vote hash
     const voteData = JSON.stringify({
       blockHeight: vote.blockHeight,
       blockHash: vote.blockHash,
@@ -251,21 +267,26 @@ export class ConsensusParticipation {
       timestamp: vote.timestamp,
       passed: vote.validationResult.passed,
     });
+    const msgHash = sha256(new TextEncoder().encode(voteData));
 
-    // In production, use proper cryptographic signing (ECDSA, EdDSA)
-    // For now, using simple hash-based signature
-    const crypto = require('crypto-js');
-    const signature = crypto.SHA256(voteData + this.validatorId).toString();
+    if (!this.privateKeyHex) {
+      // PeerIdentity not loaded yet — return unsigned marker (will be rejected by peers)
+      console.warn('[Consensus] privateKey not ready — vote will be unsigned');
+      return 'unsigned';
+    }
 
-    return signature;
+    const sig = secp256k1.sign(msgHash, hexToBytes(this.privateKeyHex));
+    return bytesToHex(sig.toCompactRawBytes());
   }
 
   /**
-   * Verify a vote signature
+   * Verify a secp256k1 vote signature.
+   * Requires vote.publicKeyHex to be present (set by the sender when signing).
    */
   private async verifyVoteSignature(vote: BlockVote): Promise<boolean> {
     try {
-      // Recreate vote data
+      if (!vote.publicKeyHex || vote.signature === 'unsigned') return false;
+
       const voteData = JSON.stringify({
         blockHeight: vote.blockHeight,
         blockHash: vote.blockHash,
@@ -273,14 +294,9 @@ export class ConsensusParticipation {
         timestamp: vote.timestamp,
         passed: vote.validationResult.passed,
       });
-
-      // Verify signature
-      const crypto = require('crypto-js');
-      const expectedSignature = crypto.SHA256(voteData + vote.validatorId).toString();
-
-      return expectedSignature === vote.signature;
-    } catch (error) {
-      console.error('Error verifying vote signature:', error);
+      const msgHash = sha256(new TextEncoder().encode(voteData));
+      return secp256k1.verify(vote.signature, msgHash, vote.publicKeyHex);
+    } catch {
       return false;
     }
   }

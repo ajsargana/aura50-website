@@ -469,6 +469,17 @@ export class SecurityCircleService {
 
         console.log(`📈 Inviter progress updated: ${inviterId}`);
         console.log(`   Active invites: ${inviterCircle.invitesActiveMining}/3`);
+
+        // Automatically check for Sybil activity whenever a circle member activates
+        const detection = await this.detectSybilActivity(inviterId);
+        if (detection.suspicious) {
+          console.warn(`🚨 Auto-slash triggered for ${inviterId} (confidence: ${detection.confidence}%)`);
+          await this.slashStakes(
+            inviterId,
+            detection.reasons.join('; '),
+            { detectionReasons: detection.reasons, detectedAt: new Date().toISOString(), trigger: 'member_activation' }
+          );
+        }
       }
 
     } catch (error) {
@@ -902,8 +913,8 @@ export class SecurityCircleService {
         throw new Error(`Insufficient balance to stake for invite. Need ${stakeAmount} A50`);
       }
 
-      // Deduct stake from inviter's balance
-      // await this.walletService.updateBalance((inviterBalance - stakeAmount).toFixed(8));
+      // Deduct stake from inviter's balance (tokens are locked, not transferable)
+      await this.walletService.updateBalance((inviterBalance - stakeAmount).toFixed(8));
 
       console.log(`💰 Locked ${stakeAmount} A50 stake for inviter ${inviterId} → new user ${newUserId}`);
 
@@ -925,8 +936,8 @@ export class SecurityCircleService {
         throw new Error(`Insufficient balance to stake for invite. Need ${stakeAmount} A50`);
       }
 
-      // Deduct stake from user's balance
-      // await this.walletService.updateBalance((userBalance - stakeAmount).toFixed(8));
+      // Deduct stake from user's balance (tokens are locked, not transferable)
+      await this.walletService.updateBalance((userBalance - stakeAmount).toFixed(8));
 
       console.log(`💰 Locked ${stakeAmount} A50 member stake for user ${userId}`);
 

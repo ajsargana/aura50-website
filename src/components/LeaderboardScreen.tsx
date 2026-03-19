@@ -226,9 +226,11 @@ export function LeaderboardScreen({ navigation }: LeaderboardScreenProps) {
     invited: 0, registered: 0, active: 0,
     walletStatus: 'locked', requirements: 'Loading...',
   });
-  const [members, setMembers]         = useState<CircleMember[]>([]);
-  const [inviteLinks, setInviteLinks] = useState<InviteLink[]>([]);
-  const [showQRCode, setShowQRCode]   = useState<string | null>(null);
+  const [members, setMembers]                 = useState<CircleMember[]>([]);
+  const [inviteLinks, setInviteLinks]         = useState<InviteLink[]>([]);
+  const [showQRCode, setShowQRCode]           = useState<string | null>(null);
+  const [userBalance, setUserBalance]         = useState<number>(0);
+  const [isGeneratingInvite, setIsGeneratingInvite] = useState(false);
 
   // Leaderboard state
   const [leaderboard, setLeaderboard]               = useState<LeaderboardEntry[]>([]);
@@ -298,17 +300,29 @@ export function LeaderboardScreen({ navigation }: LeaderboardScreenProps) {
       setProgress(circleProgress);
       const circleStatus = await securityCircleService.getSecurityCircleStatus(user.id);
       if (circleStatus) setMembers(circleStatus.members);
-      let pendingInvites = await securityCircleService.getPendingInvites(user.id);
-
-      if (pendingInvites.length === 0 && circleProgress.invited < 3) {
-        try {
-          await securityCircleService.generateInviteLink(user.id);
-          pendingInvites = await securityCircleService.getPendingInvites(user.id);
-        } catch { /* silently ignore */ }
-      }
+      const pendingInvites = await securityCircleService.getPendingInvites(user.id);
       setInviteLinks(pendingInvites);
+      // Sync from backend first so the balance shown is the real server value
+      await walletService.syncBalanceFromBackend();
+      setUserBalance(parseFloat(walletService.getBalance()) || 0);
     } catch (error) {
       console.error('Failed to load circle data:', error);
+    }
+  };
+
+  const handleGenerateInvite = async () => {
+    try {
+      setIsGeneratingInvite(true);
+      const user = walletService.getUser();
+      if (!user) throw new Error('User not authenticated');
+      const inviteLink = await securityCircleService.generateInviteLink(user.id);
+      await loadCircleData();
+      shareInviteLink(inviteLink.inviteCode);
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : 'Failed to generate invite link. Please try again.';
+      Alert.alert('Unable to Generate Invite', msg);
+    } finally {
+      setIsGeneratingInvite(false);
     }
   };
 
@@ -765,26 +779,56 @@ export function LeaderboardScreen({ navigation }: LeaderboardScreenProps) {
           </ThemedCard>
         )}
 
-        {/* Generate Invite Link button */}
-        <TouchableOpacity
-          style={styles.generateBtn}
-          onPress={() =>
-            inviteLinks.length > 0
-              ? shareInviteLink(inviteLinks[0].inviteCode)
-              : Alert.alert('Invite Code', 'Loading your invite code...')
-          }
-          activeOpacity={0.85}
-        >
-          <LinearGradient
-            colors={['#2E86C1', '#5DADE2']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 0 }}
-            style={styles.generateBtnGradient}
+        {/* Stake requirement hint — shown when user has no invite yet */}
+        {inviteLinks.length === 0 && progress.invited < 3 && (
+          <View style={[styles.stakeHint, {
+            backgroundColor: userBalance >= 10
+              ? (isDark ? 'rgba(16,185,129,0.10)' : 'rgba(16,185,129,0.08)')
+              : (isDark ? 'rgba(239,68,68,0.12)' : 'rgba(239,68,68,0.08)'),
+            borderColor: userBalance >= 10 ? '#10B981' : '#EF4444',
+          }]}>
+            <Ionicons
+              name={userBalance >= 10 ? 'checkmark-circle-outline' : 'alert-circle-outline'}
+              size={15}
+              color={userBalance >= 10 ? '#10B981' : '#EF4444'}
+            />
+            <Text style={[styles.stakeHintText, { color: userBalance >= 10 ? '#10B981' : '#EF4444' }]}>
+              {userBalance >= 10
+                ? `Ready to invite · ${userBalance.toFixed(2)} A50 available (10 A50 will be staked)`
+                : `Need 10 A50 coins to stake for invite. Current balance: ${userBalance.toFixed(2)} A50`}
+            </Text>
+          </View>
+        )}
+
+        {/* Generate / Share Invite button */}
+        {progress.invited < 3 && (
+          <TouchableOpacity
+            style={styles.generateBtn}
+            onPress={() =>
+              inviteLinks.length > 0
+                ? shareInviteLink(inviteLinks[0].inviteCode)
+                : handleGenerateInvite()
+            }
+            disabled={isGeneratingInvite}
+            activeOpacity={0.85}
           >
-            <Ionicons name="link-outline" size={20} color="white" />
-            <Text style={styles.generateBtnText}>Generate Invite Link</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            <LinearGradient
+              colors={['#2E86C1', '#5DADE2']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 0 }}
+              style={styles.generateBtnGradient}
+            >
+              <Ionicons name="link-outline" size={20} color="white" />
+              <Text style={styles.generateBtnText}>
+                {isGeneratingInvite
+                  ? 'Generating...'
+                  : inviteLinks.length > 0
+                    ? 'Share Invite Code'
+                    : 'Generate Invite Link'}
+              </Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        )}
 
         {/* Security note */}
         <View style={[styles.securityNote, {
@@ -1282,6 +1326,23 @@ const styles = StyleSheet.create({
   },
   memberDate: {
     fontSize: 10,
+  },
+
+  // ── Stake hint ───────────────────────────────────────────────────────────────
+  stakeHint: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    marginBottom: 10,
+    gap: 8,
+  },
+  stakeHintText: {
+    fontSize: 13,
+    fontWeight: '500',
+    flex: 1,
   },
 
   // ── Generate button ──────────────────────────────────────────────────────────

@@ -117,7 +117,8 @@ export function SecurityCircleScreen({ navigation }: SecurityCircleScreenProps) 
       await loadCircleData(); // Refresh data
 
     } catch (error) {
-      Alert.alert('Error', error.message);
+      const msg = error instanceof Error ? error.message : 'Failed to generate invite link. Please try again.';
+      Alert.alert('Unable to Generate Invite', msg);
     } finally {
       setIsGeneratingInvite(false);
     }

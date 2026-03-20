@@ -225,6 +225,24 @@ export class MiningService {
       if (!cooldownCheck.canMine) {
         console.warn('⏰ Mining cooldown active:', cooldownCheck.reason);
         console.warn('   Next available:', cooldownCheck.nextAvailableTime);
+
+        // "Already submitted for current block" means block hasn't settled yet.
+        // Schedule auto-retry at blockEndTime instead of dying permanently.
+        if (cooldownCheck.reason?.includes('Already submitted') && cooldownCheck.nextAvailableTime) {
+          const waitMs = Math.max(5000, cooldownCheck.nextAvailableTime.getTime() - Date.now() + 5000);
+          console.log(`⏳ Block still active — auto-retrying in ${Math.ceil(waitMs / 1000)}s`);
+          setTimeout(async () => {
+            if (this.isMining) return; // already restarted by another path
+            try {
+              await this.startMining();
+              console.log('✅ Mining auto-restarted after block settled');
+            } catch (e: any) {
+              console.warn('⚠️ Auto-restart failed:', e?.message);
+            }
+          }, waitMs);
+          return false; // not an error — just waiting for next block
+        }
+
         throw new Error(cooldownCheck.reason || 'Mining cooldown active');
       }
 
@@ -358,11 +376,21 @@ export class MiningService {
           newId: String(newBlock?.id ?? '').substring(0, 8),
           ourId: this.currentSession.blockId?.substring(0, 8),
         });
-        this.stopMining().then(() => {
-          setTimeout(async () => {
-            const restarted = await this.startMining();
-            if (restarted) console.log('✅ Mining restarted via WebSocket block notification');
-          }, 2000);
+        this.stopMining().then(async () => {
+          for (let attempt = 1; attempt <= 4; attempt++) {
+            await new Promise(r => setTimeout(r, 2000 * attempt));
+            if (this.isMining) break; // already restarted by something else
+            try {
+              const restarted = await this.startMining();
+              if (restarted) {
+                console.log(`✅ Mining restarted via WebSocket (attempt ${attempt})`);
+                break;
+              }
+            } catch (e: any) {
+              console.warn(`⚠️ Restart attempt ${attempt} failed: ${e?.message}`);
+            }
+            if (attempt === 4) console.error('❌ All restart attempts failed — tap to resume');
+          }
         });
       }
     };
@@ -510,8 +538,8 @@ export class MiningService {
 
   // BATTERY OPTIMIZATION: Adaptive Mining Interval
   private async calculateMiningInterval(metrics: DeviceMetrics): Promise<number | null> {
-    // Stop mining if battery critical
-    if (metrics.batteryLevel < 20) {
+    // Stop mining if battery critical (matches canStartMining threshold of 15%)
+    if (metrics.batteryLevel < 15 && !metrics.isCharging) {
       return null; // Stop completely
     }
 
@@ -794,7 +822,7 @@ export class MiningService {
     // Smart mining intensity based on multiple factors
 
     // CRITICAL: Stop if battery critical or overheating
-    if ((metrics.batteryLevel < 20 && !metrics.isCharging) || this.cpuTemperature > 50) {
+    if ((metrics.batteryLevel < 15 && !metrics.isCharging) || this.cpuTemperature > 50) {
       this.pauseMining();
       return;
     }
@@ -903,11 +931,13 @@ export class MiningService {
   private canStartMining(metrics: DeviceMetrics): boolean {
     // Don't mine if battery is critically low
     if (metrics.batteryLevel < 15 && !metrics.isCharging) {
+      console.warn(`⚠️ Mining blocked: battery too low (${metrics.batteryLevel.toFixed(0)}% — needs 15%+ or charging)`);
       return false;
     }
 
     // Don't mine if memory usage is too high
     if (metrics.memoryUsage > 90) {
+      console.warn(`⚠️ Mining blocked: memory usage too high (${metrics.memoryUsage.toFixed(0)}%)`);
       return false;
     }
 
@@ -1103,34 +1133,50 @@ export class MiningService {
           // Users can pull-to-refresh for the latest balance at any time.
 
           console.log('🔄 Auto-restarting mining on new block...');
-          const restarted = await this.startMining();
-          if (restarted) {
-            console.log('✅ Continuous mining resumed on new block');
-          } else {
-            console.error('❌ Failed to restart continuous mining');
+          for (let attempt = 1; attempt <= 3; attempt++) {
+            if (attempt > 1) await new Promise(r => setTimeout(r, 3000 * attempt));
+            try {
+              const restarted = await this.startMining();
+              if (restarted) { console.log(`✅ Continuous mining resumed (attempt ${attempt})`); break; }
+            } catch (e: any) { console.warn(`⚠️ startMining attempt ${attempt}: ${e?.message}`); }
+            if (attempt === 3) console.error('❌ Could not restart mining after new block');
           }
         };
 
         network.on('newBlock', onNewBlock);
 
-        // Safety fallback: if WebSocket never fires, poll once after 3 minutes
+        // Safety fallback: if WebSocket never fires, poll after 90s (within next block window)
         const fallbackTimer = setTimeout(async () => {
           if (resolved) return;
           resolved = true;
           network.off('newBlock', onNewBlock);
-          console.log('⚠️ WebSocket fallback: polling once after 3 minutes');
-          const newBlockId = await this.getCurrentBlockId();
-          if (newBlockId !== currentBlockId) {
-            await this.startMining();
-          }
-        }, 3 * 60 * 1000);
+          console.log('⚠️ WebSocket fallback: polling after 90s');
+          await this.getCurrentBlockId(); // refresh currentBlockInfo
+          await this.startMining().catch(e => console.warn('Fallback startMining failed:', e?.message));
+        }, 90_000);
 
       } else {
         // Share was rejected - handle different rejection reasons
         const reason = shareResult.reason || shareResult.message || '';
 
+        // Case 0: Rate-limited by server middleware — stop and wait for next block
+        if (reason.toLowerCase().includes('too many mining') || reason.includes('429') || reason.toLowerCase().includes('rate limit')) {
+          console.warn('⏸️ Server rate limit hit — pausing and restarting on next block...');
+          await this.stopMining();
+          setTimeout(async () => {
+            for (let attempt = 1; attempt <= 4; attempt++) {
+              await new Promise(r => setTimeout(r, 5000 * attempt));
+              if (this.isMining) break;
+              try {
+                const restarted = await this.startMining();
+                if (restarted) { console.log(`✅ Restarted after rate limit (attempt ${attempt})`); break; }
+              } catch (e: any) { console.warn(`⚠️ Rate-limit restart attempt ${attempt}: ${e?.message}`); }
+              if (attempt === 4) console.error('❌ Could not restart after rate limit');
+            }
+          }, 0);
+
         // Case 1: User already submitted share for this block
-        if (reason.toLowerCase().includes('already submitted')) {
+        } else if (reason.toLowerCase().includes('already submitted')) {
           console.log('⏸️ Already submitted share for this block - waiting for next block...');
 
           // Store current block ID BEFORE stopping (session will be cleared)
@@ -1155,29 +1201,27 @@ export class MiningService {
             await this.syncMiningHistory();
 
             console.log('🔄 Auto-restarting mining on new block...');
-            const restarted = await this.startMining();
-            if (restarted) {
-              console.log('✅ Continuous mining resumed on new block');
-            } else {
-              console.error('❌ Failed to restart continuous mining');
+            for (let attempt = 1; attempt <= 3; attempt++) {
+              if (attempt > 1) await new Promise(r => setTimeout(r, 3000 * attempt));
+              try {
+                const restarted = await this.startMining();
+                if (restarted) { console.log(`✅ Mining resumed (attempt ${attempt})`); break; }
+              } catch (e: any) { console.warn(`⚠️ startMining attempt ${attempt}: ${e?.message}`); }
+              if (attempt === 3) console.error('❌ Could not restart mining after already-submitted');
             }
           };
 
           network.on('newBlock', onNewBlockAlt);
 
-          // Safety fallback: if WebSocket never fires, poll once after 3 minutes
+          // Safety fallback: if WebSocket never fires, poll after 90s
           const fallbackTimerAlt = setTimeout(async () => {
             if (resolvedAlt) return;
             resolvedAlt = true;
             network.off('newBlock', onNewBlockAlt);
-            console.log('⚠️ WebSocket fallback: polling once after 3 minutes');
-            const newBlockId = await this.getCurrentBlockId();
-            if (newBlockId !== currentBlockId) {
-              await this.walletService.syncBalanceFromBackend();
-              await this.syncMiningHistory();
-              await this.startMining();
-            }
-          }, 3 * 60 * 1000);
+            console.log('⚠️ WebSocket fallback (already-submitted): polling after 90s');
+            await this.getCurrentBlockId();
+            await this.startMining().catch(e => console.warn('Fallback startMining failed:', e?.message));
+          }, 90_000);
 
         // Case 2: Global block share cap hit (100,000 shares) — notify user and wait
         } else if (reason.toLowerCase().includes('block is full') || reason.toLowerCase().includes('maximum shares reached')) {
@@ -1203,31 +1247,35 @@ export class MiningService {
             if (resolvedBF) return;
             resolvedBF = true;
             networkBF.off('newBlock', onNewBlockBF);
-            const newId = await this.getCurrentBlockId();
-            if (newId !== blockFullBlockId) await this.startMining();
-          }, 3 * 60 * 1000);
+            console.log('⚠️ WebSocket fallback (block-full): polling after 90s');
+            await this.getCurrentBlockId();
+            await this.startMining().catch(e => console.warn('Fallback startMining failed:', e?.message));
+          }, 90_000);
 
         // Case 3: Block is final or not accepting shares
         } else if (reason.toLowerCase().includes('block is final') || reason.toLowerCase().includes('not accepting shares')) {
-          console.log('🔄 Block finalized - will restart mining on new block');
+          console.log('🔄 Block finalized — restarting mining on new block...');
 
           // Stop current mining
           await this.stopMining();
 
-          // IMPORTANT: Restart mining AFTER current work loop iteration completes
-          // Using setTimeout ensures we're outside the current call stack
+          // Retry loop — new block is created synchronously with settlement so retry quickly
           setTimeout(async () => {
-            // Wait for new block to be available
-            await new Promise(resolve => setTimeout(resolve, 3000));
-
-            // Restart mining (will fetch new block automatically)
-            const restarted = await this.startMining();
-            if (restarted) {
-              console.log('✅ Mining restarted on new block');
-            } else {
-              console.error('❌ Failed to restart mining - check device metrics');
+            for (let attempt = 1; attempt <= 4; attempt++) {
+              await new Promise(r => setTimeout(r, 2000 * attempt));
+              if (this.isMining) break; // already restarted by something else
+              try {
+                const restarted = await this.startMining();
+                if (restarted) {
+                  console.log(`✅ Mining restarted on new block (attempt ${attempt})`);
+                  break;
+                }
+              } catch (e: any) {
+                console.warn(`⚠️ Restart attempt ${attempt} failed after block-final: ${e?.message}`);
+              }
+              if (attempt === 4) console.error('❌ All restart attempts failed after block finalization');
             }
-          }, 100); // Short delay to exit current call stack
+          }, 0);
 
         // Case 3: Other rejection reasons (just warn)
         } else {

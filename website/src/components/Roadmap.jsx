@@ -100,7 +100,7 @@ export default function Roadmap() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
           style={{ textAlign: 'center', marginBottom: '4rem' }}
         >
           <span style={{
@@ -138,7 +138,7 @@ export default function Roadmap() {
               key={phase.period}
               initial={{ opacity: 0, x: -30 }}
               animate={inView ? { opacity: 1, x: 0 } : {}}
-              transition={{ duration: 0.6, delay: i * 0.15 }}
+              transition={{ duration: 0.8, delay: i * 0.15 }}
               style={{ display: 'flex', gap: '2rem', marginBottom: i < phases.length - 1 ? '2.5rem' : 0 }}
             >
               {/* Dot */}

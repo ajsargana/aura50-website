@@ -40,7 +40,7 @@ export default function Tokenomics() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
           style={{ textAlign: 'center', marginBottom: '4rem' }}
         >
           <span style={{ display: 'inline-block', color: '#E8A020', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: '0.85rem', letterSpacing: '0.12em', textTransform: 'uppercase', marginBottom: '1rem' }}>
@@ -109,7 +109,7 @@ export default function Tokenomics() {
                   <motion.div
                     initial={{ height: 0 }}
                     animate={inView ? { height: `${heightPct}%` } : {}}
-                    transition={{ duration: 1.0, delay: 0.5 + i * 0.1, ease: 'easeOut' }}
+                    transition={{ duration: 1.3, delay: 0.5 + i * 0.1, ease: 'easeOut' }}
                     style={{
                       width: '100%', borderRadius: '6px 6px 2px 2px',
                       background: `linear-gradient(to top, ${h.color}40, ${h.color}CC)`,
@@ -190,7 +190,7 @@ export default function Tokenomics() {
                   <motion.div
                     initial={{ width: 0 }}
                     animate={inView ? { width: `${t.save}%` } : { width: 0 }}
-                    transition={{ duration: 1.0, delay: 0.7 + i * 0.1, ease: 'easeOut' }}
+                    transition={{ duration: 1.3, delay: 0.7 + i * 0.1, ease: 'easeOut' }}
                     style={{ height: '100%', borderRadius: 100, background: t.color }}
                   />
                 </div>

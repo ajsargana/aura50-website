@@ -73,7 +73,7 @@ export default function Problem() {
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={inView ? { opacity: 1, y: 0 } : {}}
-          transition={{ duration: 0.6 }}
+          transition={{ duration: 0.8 }}
           style={{ textAlign: 'center', marginBottom: '1.5rem' }}
         >
           <span style={{
@@ -112,7 +112,7 @@ export default function Problem() {
               key={p.title}
               initial={{ opacity: 0, y: 40 }}
               animate={inView ? { opacity: 1, y: 0 } : {}}
-              transition={{ duration: 0.6, delay: i * 0.1 }}
+              transition={{ duration: 0.8, delay: i * 0.1 }}
               className="glass feature-card"
               style={{ borderRadius: 20, padding: '2rem', cursor: 'default' }}
             >

@@ -10,7 +10,7 @@ const links = {
     { label: 'Features', href: '#features' },
     { label: 'Technology', href: '#technology' },
     { label: 'Tokenomics', href: '#tokenomics' },
-    { label: 'Roadmap', href: '#roadmap' },
+    { label: 'FAQ', href: '#faq' },
     { label: 'Download', href: '#download' },
   ],
   Community: [

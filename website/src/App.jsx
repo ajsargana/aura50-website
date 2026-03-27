@@ -2,6 +2,7 @@ import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion'
 import ParticleBackground from './components/ParticleBackground'
 import Navbar from './components/Navbar'
+import SEO from './components/SEO'
 import Hero from './components/Hero'
 import Problem from './components/Problem'
 import Features from './components/Features'
@@ -10,6 +11,7 @@ import Tokenomics from './components/Tokenomics'
 import Download from './components/Download'
 import Community from './components/Community'
 import RealBlockchain from './components/RealBlockchain'
+import FAQ from './components/FAQ'
 import CoinCanvas from './components/CoinCanvas'
 import Footer from './components/Footer'
 import Privacy from './pages/Privacy'
@@ -34,6 +36,7 @@ function HomePage() {
       exit="out"
       transition={pageTransition}
     >
+      <SEO path="/" />
       <Hero />
       <Divider />
       <Problem />
@@ -47,6 +50,8 @@ function HomePage() {
       <Tokenomics />
       <Divider />
       <Download />
+      <Divider />
+      <FAQ />
       <Divider />
       <Community />
     </motion.main>
@@ -76,16 +81,19 @@ export default function App() {
           <Route path="/" element={<HomePage />} />
           <Route path="/privacy" element={
             <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={pageTransition}>
+              <SEO title="Privacy Policy" description="AURA50 Privacy Policy — how we collect, use, and protect your data." path="/privacy" />
               <Privacy />
             </motion.div>
           } />
           <Route path="/terms" element={
             <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={pageTransition}>
+              <SEO title="Terms of Service" description="AURA50 Terms of Service — the rules governing use of the AURA50 app and website." path="/terms" />
               <Terms />
             </motion.div>
           } />
           <Route path="/cookies" element={
             <motion.div variants={pageVariants} initial="initial" animate="in" exit="out" transition={pageTransition}>
+              <SEO title="Cookie Policy" description="AURA50 Cookie Policy — how we use cookies and similar technologies." path="/cookies" />
               <Cookies />
             </motion.div>
           } />

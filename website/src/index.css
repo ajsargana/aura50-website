@@ -287,6 +287,32 @@ img {
   image-rendering: -webkit-optimize-contrast;
 }
 
+/* Keyboard focus — visible for accessibility, hidden for mouse users */
+:focus { outline: none; }
+:focus-visible {
+  outline: 2px solid rgba(232, 160, 32, 0.8);
+  outline-offset: 3px;
+  border-radius: 4px;
+}
+
+/* Skip-to-content link for screen readers */
+.skip-link {
+  position: absolute;
+  top: -100%;
+  left: 1rem;
+  z-index: 9999;
+  background: #E8A020;
+  color: #060C18;
+  padding: 8px 16px;
+  border-radius: 0 0 8px 8px;
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: top 0.2s;
+}
+.skip-link:focus { top: 0; }
+
 /* Reduce motion */
 @media (prefers-reduced-motion: reduce) {
   *, ::before, ::after {

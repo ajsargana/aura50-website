@@ -1,7 +1,7 @@
 import { Helmet } from 'react-helmet-async'
 
 const SITE_URL = 'https://aura50.io'
-const OG_IMAGE = `${SITE_URL}/og-image.png`
+const OG_IMAGE = `${SITE_URL}/og-image.svg`
 
 const websiteSchema = {
   '@context': 'https://schema.org',
@@ -45,6 +45,38 @@ const appSchema = {
   url: SITE_URL,
   softwareVersion: '1.0.0-beta',
   releaseNotes: 'Beta release. Mainnet launching Q2 2026.',
+}
+
+const howToSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'HowTo',
+  name: 'How to Start Mining A50 on Your Smartphone',
+  description: 'Start earning A50 cryptocurrency on any Android or iOS smartphone in minutes. No ASIC hardware required.',
+  totalTime: 'PT4M',
+  tool: [{ '@type': 'HowToTool', name: 'Android 7.0+ or iOS 14+ smartphone' }],
+  step: [
+    {
+      '@type': 'HowToStep',
+      position: 1,
+      name: 'Download the AURA50 app',
+      text: 'Download the AURA50 APK for Android 7.0+ or get the iOS app. No Google Play account required for Android.',
+      url: `${SITE_URL}/#download`,
+    },
+    {
+      '@type': 'HowToStep',
+      position: 2,
+      name: 'Create your A50 wallet',
+      text: 'Open the app and generate your A50 wallet. Your private keys are secured by your device hardware (iOS Keychain or Android Keystore) and never leave your phone.',
+      url: `${SITE_URL}/#download`,
+    },
+    {
+      '@type': 'HowToStep',
+      position: 3,
+      name: 'Tap Start Mining',
+      text: 'Tap the Start Mining button. Your phone solves real SHA-256 Proof-of-Work puzzles in the background and earns 2–5 A50 tokens per day with zero special hardware.',
+      url: `${SITE_URL}/#download`,
+    },
+  ],
 }
 
 const faqSchema = {
@@ -149,6 +181,7 @@ export default function SEO({ title, description, path = '/', noindex = false })
           <script type="application/ld+json">{JSON.stringify(websiteSchema)}</script>
           <script type="application/ld+json">{JSON.stringify(orgSchema)}</script>
           <script type="application/ld+json">{JSON.stringify(appSchema)}</script>
+          <script type="application/ld+json">{JSON.stringify(howToSchema)}</script>
           <script type="application/ld+json">{JSON.stringify(faqSchema)}</script>
         </>
       )}

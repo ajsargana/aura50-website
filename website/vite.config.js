@@ -9,8 +9,18 @@ export default defineConfig({
       hostname: 'https://aura50.io',
       routes: ['/', '/privacy', '/terms', '/cookies'],
       lastmod: new Date().toISOString().split('T')[0],
-      changefreq: 'weekly',
-      priority: 1.0,
+      priority: {
+        '/':        1.0,
+        '/privacy': 0.3,
+        '/terms':   0.3,
+        '/cookies': 0.3,
+      },
+      changefreq: {
+        '/':        'weekly',
+        '/privacy': 'monthly',
+        '/terms':   'monthly',
+        '/cookies': 'monthly',
+      },
     }),
   ],
   server: {

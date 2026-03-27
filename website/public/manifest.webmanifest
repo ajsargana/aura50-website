@@ -1,0 +1,25 @@
+{
+  "name": "AURA50 — Mobile Blockchain",
+  "short_name": "AURA50",
+  "description": "Mine A50 cryptocurrency on any smartphone. Real SHA-256 Proof-of-Work. 32MB storage. Works on 2G.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#060C18",
+  "theme_color": "#060C18",
+  "lang": "en",
+  "categories": ["finance", "utilities"],
+  "icons": [
+    {
+      "src": "/coin-face.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/coin-face.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

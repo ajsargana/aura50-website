@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react'
 import { Routes, Route, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion, useScroll, useSpring } from 'framer-motion'
 import ParticleBackground from './components/ParticleBackground'
@@ -12,11 +13,13 @@ import Download from './components/Download'
 import Community from './components/Community'
 import RealBlockchain from './components/RealBlockchain'
 import FAQ from './components/FAQ'
-import CoinCanvas from './components/CoinCanvas'
 import Footer from './components/Footer'
 import Privacy from './pages/Privacy'
 import Terms from './pages/Terms'
 import Cookies from './pages/Cookies'
+
+// Lazy-load Three.js canvas — 875KB, not needed for initial render
+const CoinCanvas = lazy(() => import('./components/CoinCanvas'))
 
 const pageVariants = {
   initial: { opacity: 0, y: 16 },
@@ -30,6 +33,7 @@ const Divider = () => <div className="section-divider" />
 function HomePage() {
   return (
     <motion.main
+      id="main-content"
       variants={pageVariants}
       initial="initial"
       animate="in"
@@ -74,7 +78,7 @@ export default function App() {
         }}
       />
       <ParticleBackground />
-      <CoinCanvas />
+      <Suspense fallback={null}><CoinCanvas /></Suspense>
       <Navbar />
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>

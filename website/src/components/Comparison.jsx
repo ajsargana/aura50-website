@@ -124,18 +124,22 @@ export default function Comparison() {
           transition={{ duration: 0.7, delay: 0.2 }}
           className="glass"
           style={{ borderRadius: 24, overflow: 'hidden' }}
+          role="table"
+          aria-label="AURA50 vs Bitcoin vs Ethereum feature comparison"
         >
           {/* Header row */}
-          <div style={{
-            display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr',
-            padding: '1rem 1.5rem',
-            borderBottom: '1px solid rgba(255,255,255,0.08)',
-            background: 'rgba(232,160,32,0.06)',
-          }}>
-            <div style={{ color: 'rgba(232,237,245,0.5)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em', fontFamily: 'Space Grotesk', textTransform: 'uppercase' }}>
+          <div
+            role="row"
+            style={{
+              display: 'grid', gridTemplateColumns: '2fr 1.2fr 1fr 1fr',
+              padding: '1rem 1.5rem',
+              borderBottom: '1px solid rgba(255,255,255,0.08)',
+              background: 'rgba(232,160,32,0.06)',
+            }}>
+            <div role="columnheader" style={{ color: 'rgba(232,237,245,0.5)', fontSize: '0.8rem', fontWeight: 600, letterSpacing: '0.08em', fontFamily: 'Space Grotesk', textTransform: 'uppercase' }}>
               Feature
             </div>
-            <div style={{ textAlign: 'center' }}>
+            <div role="columnheader" style={{ textAlign: 'center' }}>
               <span style={{
                 background: 'rgba(232,160,32,0.15)', border: '1px solid rgba(232,160,32,0.3)',
                 color: '#E8A020', borderRadius: 8, padding: '4px 12px',
@@ -144,10 +148,10 @@ export default function Comparison() {
                 AURA50
               </span>
             </div>
-            <div style={{ textAlign: 'center', color: 'rgba(232,237,245,0.5)', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: '0.9rem' }}>
+            <div role="columnheader" style={{ textAlign: 'center', color: 'rgba(232,237,245,0.5)', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: '0.9rem' }}>
               Bitcoin
             </div>
-            <div style={{ textAlign: 'center', color: 'rgba(232,237,245,0.5)', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: '0.9rem' }}>
+            <div role="columnheader" style={{ textAlign: 'center', color: 'rgba(232,237,245,0.5)', fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: '0.9rem' }}>
               Ethereum
             </div>
           </div>
@@ -156,6 +160,7 @@ export default function Comparison() {
           {rows.map((row, i) => (
             <motion.div
               key={row.feature}
+              role="row"
               initial={{ opacity: 0, x: -20 }}
               animate={inView ? { opacity: 1, x: 0 } : {}}
               transition={{ delay: 0.3 + i * 0.05 }}
@@ -169,16 +174,16 @@ export default function Comparison() {
                 transition: 'background 0.2s',
               }}
             >
-              <div style={{ color: '#E8EDF5', fontSize: '0.9rem', fontFamily: 'Inter', fontWeight: 500 }}>
+              <div role="rowheader" style={{ color: '#E8EDF5', fontSize: '0.9rem', fontFamily: 'Inter', fontWeight: 500 }}>
                 {row.feature}
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div role="cell" style={{ display: 'flex', justifyContent: 'center' }}>
                 <CellValue val={row.aura50} isAura={true} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div role="cell" style={{ display: 'flex', justifyContent: 'center' }}>
                 <CellValue val={row.bitcoin} isAura={false} />
               </div>
-              <div style={{ display: 'flex', justifyContent: 'center' }}>
+              <div role="cell" style={{ display: 'flex', justifyContent: 'center' }}>
                 <CellValue val={row.ethereum} isAura={false} />
               </div>
             </motion.div>

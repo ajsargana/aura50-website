@@ -55,6 +55,7 @@ export default function Navbar() {
         transition={{ duration: 0.6, ease: 'easeOut' }}
         className="fixed top-4 left-4 z-50"
         style={{ width: 'calc(100% - 2rem)', maxWidth: '1200px' }}
+        aria-label="Main navigation"
       >
         <div
           className="flex items-center justify-between px-5 py-3 rounded-2xl"
@@ -79,7 +80,7 @@ export default function Navbar() {
             </Link>
 
             {/* Desktop nav */}
-            <div className="hidden md:flex items-center gap-5">
+            <div className="hidden md:flex items-center gap-5" role="list" aria-label="Site sections">
               {navLinks.map((link) => {
                 const isActive = activeSection === link.id
                 return (
@@ -131,7 +132,9 @@ export default function Navbar() {
               className="md:hidden flex flex-col gap-1 cursor-pointer"
               style={{ background: 'none', border: 'none', padding: '4px' }}
               onClick={() => setMobileOpen(!mobileOpen)}
-              aria-label="Toggle menu"
+              aria-label={mobileOpen ? 'Close menu' : 'Open menu'}
+              aria-expanded={mobileOpen}
+              aria-controls="mobile-menu"
             >
               <motion.span
                 animate={mobileOpen ? { rotate: 45, y: 7 } : { rotate: 0, y: 0 }}
@@ -153,6 +156,9 @@ export default function Navbar() {
         <AnimatePresence>
           {mobileOpen && (
             <motion.div
+              id="mobile-menu"
+              role="navigation"
+              aria-label="Mobile navigation"
               initial={{ opacity: 0, y: -10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               exit={{ opacity: 0, y: -10, height: 0 }}

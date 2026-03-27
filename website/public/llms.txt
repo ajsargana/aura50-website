@@ -1,0 +1,105 @@
+# AURA50
+
+> AURA50 is the world's first mobile-native blockchain. It brings real SHA-256 Proof-of-Work cryptocurrency mining to any Android or iOS smartphone — no ASIC hardware, no fast internet, no technical expertise required. Built for the 1.7 billion unbanked adults who access the internet only via smartphone.
+
+## What is AURA50?
+
+AURA50 is a from-scratch blockchain engineered for mobile devices. Unlike Bitcoin (requires 500GB+ storage, ASIC mining rigs, and broadband) or Ethereum (1TB+ storage, $5–$100 gas fees), AURA50 runs as a full node in 32MB on any phone and works on 2G networks.
+
+The A50 token uses real SHA-256 Proof-of-Work — the same algorithm as Bitcoin — but compressed using a patent-pending temporal-spatial algorithm that achieves 31.25 million times compression (979TB → 32MB for 10 million users).
+
+## Key Facts
+
+- **Token**: A50
+- **Max Supply**: 50,000,000 A50 (hard cap, no inflation)
+- **Mining Reward**: 85% of all tokens earned by miners over 10 years
+- **Block Time**: 2 minutes
+- **Storage**: 32MB for a full node (vs 500GB+ for Bitcoin)
+- **Bandwidth**: <50MB/month
+- **Consensus**: SHA-256 Proof-of-Work (same as Bitcoin)
+- **Compression**: 31.25 million× temporal-spatial algorithm
+- **Networks**: Works on 2G, 3G, 4G, WiFi, and offline (queue transactions)
+- **Platforms**: Android 7.0+ (API 24), iOS 14+
+- **No ICO**: No pre-mine, no insider allocation
+- **Halving**: Every 52,560 blocks (~1 year), like Bitcoin
+- **Mainnet**: Launching Q2 2026
+- **License**: Open source
+
+## What Makes AURA50 Different
+
+1. **Mobile Full Node** — Run a complete blockchain node on a smartphone. Impossible with Bitcoin or Ethereum.
+2. **31.25 Million× Compression** — Patent-pending algorithm reduces blockchain data from 979TB to 32MB.
+3. **Works on 2G** — Less than 50MB/month bandwidth. Designed for developing markets.
+4. **Offline Transactions** — Queue transactions without internet. Auto-syncs when connection returns.
+5. **Trust-Based Fee Decay** — Fees drop as you participate longer: 0.1% (new) → 0.001% (3+ years). World first.
+6. **Hardware-Backed Security** — Keys stored in iOS Keychain / Android Keystore. Never touches servers.
+7. **Fair Launch** — 85% of supply earned by miners. No ICO, no pre-mine.
+8. **DAO Governance** — A50 holders vote on protocol changes. 10% quorum, 66% approval, 2-day timelock.
+9. **True P2P** — libp2p with gossipsub, Kademlia DHT, NAT traversal. No central servers.
+
+## Token Economics
+
+| Metric | Value |
+|--------|-------|
+| Name | AURA50 (A50) |
+| Max Supply | 50,000,000 |
+| Miner Allocation | 85% (42,500,000 A50) |
+| Block Reward (Year 1–2) | 481 A50/block |
+| Block Time | 2 minutes |
+| Halving Cycle | Every 52,560 blocks (~1 year) |
+| Mining Period | 10 years |
+| Fee System | Trust-based decay (0.001%–0.1%) |
+
+## Comparison vs Bitcoin and Ethereum
+
+| Feature | AURA50 | Bitcoin | Ethereum |
+|---------|--------|---------|----------|
+| Storage Required | 32 MB | 500+ GB | 1+ TB |
+| Mobile Full Node | Yes | No | No |
+| Mine on Smartphone | Yes | No | No |
+| Works on 2G/3G | Yes | No | No |
+| Offline Transactions | Yes | No | No |
+| Transaction Fee | 0.001–0.1% | Variable $1–50+ | $5–$100+ |
+| Monthly Bandwidth | <50 MB | 5–50+ GB | 20+ GB |
+| Fair Launch | Yes | Yes | Pre-mine |
+| Trust-Based Fees | Yes | No | No |
+
+## Frequently Asked Questions
+
+**What is AURA50?**
+AURA50 is the world's first mobile-native blockchain. It uses real SHA-256 Proof-of-Work mining — the same algorithm as Bitcoin — but engineered to run on any Android or iOS smartphone requiring only 32MB of storage and working on 2G networks.
+
+**Can I mine A50 on my phone without special hardware?**
+Yes. Any Android 7.0+ or iOS 14+ device can mine A50 tokens and earn 2–5 A50 per day. No ASIC hardware required.
+
+**How does AURA50 fit a full blockchain in 32MB?**
+AURA50 uses a patent-pending temporal-spatial compression algorithm that achieves 31.25 million times compression — reducing what would be 979TB of raw blockchain data for 10 million users down to 32MB. Cryptographic proofs fit inside a single SMS.
+
+**What is the A50 max supply?**
+A50 has a hard cap of 50 million tokens. 85% are earned by miners over a 10-year period through Proof-of-Work, with halving every ~1 year. No ICO, no pre-mine.
+
+**Does AURA50 work without internet?**
+Yes. AURA50 supports offline transaction queuing. Transactions auto-sync when connectivity returns. The app is optimised for 2G and 3G networks (<50MB/month).
+
+**When is mainnet launching?**
+AURA50 mainnet is scheduled for Q2 2026. Join the waitlist at aura50.io for a 5% mining bonus on launch day.
+
+**Is AURA50 open source?**
+Yes. The blockchain core is fully open source on GitHub at github.com/aura50/aura50.
+
+## Pages
+
+- [Home](https://aura50.io/): Full landing page — problem statement, technology, tokenomics, download, FAQ, community
+- [Privacy Policy](https://aura50.io/privacy): Data collection and usage policy
+- [Terms of Service](https://aura50.io/terms): Terms governing use of the AURA50 app and website
+- [Cookie Policy](https://aura50.io/cookies): Cookie usage policy
+
+## External Links
+
+- GitHub: https://github.com/aura50/aura50
+- Discord: https://discord.gg/aura50
+- Twitter/X: https://twitter.com/aura50_io
+- Telegram: https://t.me/aura50
+- Documentation: https://docs.aura50.io
+- Whitepaper: https://docs.aura50.io/whitepaper
+- Contact: hello@aura50.io

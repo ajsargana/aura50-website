@@ -157,6 +157,9 @@ export default function SEO({ title, description, path = '/', noindex = false })
       <link rel="canonical" href={canonical} />
       {noindex && <meta name="robots" content="noindex, nofollow" />}
 
+      {/* LLMs.txt discovery — AI agents and LLM crawlers */}
+      <link rel="alternate" type="text/plain" href={`${SITE_URL}/llms.txt`} title="LLM-readable site summary" />
+
       {/* Open Graph */}
       <meta property="og:type" content="website" />
       <meta property="og:site_name" content="AURA50" />

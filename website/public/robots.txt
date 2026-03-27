@@ -1,4 +1,106 @@
+# AURA50 — robots.txt
+# https://aura50.io
+
+# ── Standard search engines ───────────────────────────────────────────────────
 User-agent: *
 Allow: /
+Disallow: /private/
+Disallow: /.claude/
 
+# ── Google ────────────────────────────────────────────────────────────────────
+User-agent: Googlebot
+Allow: /
+
+User-agent: Googlebot-Image
+Allow: /
+
+# Google AI (Gemini training) — allow so Gemini cites us
+User-agent: Google-Extended
+Allow: /
+
+# ── OpenAI / ChatGPT ──────────────────────────────────────────────────────────
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# ── Anthropic / Claude ────────────────────────────────────────────────────────
+User-agent: Claude-Web
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+# ── Perplexity ────────────────────────────────────────────────────────────────
+User-agent: PerplexityBot
+Allow: /
+
+# ── Meta AI ───────────────────────────────────────────────────────────────────
+User-agent: meta-externalagent
+Allow: /
+
+User-agent: FacebookBot
+Allow: /
+
+# ── Apple ─────────────────────────────────────────────────────────────────────
+User-agent: Applebot
+Allow: /
+
+User-agent: Applebot-Extended
+Allow: /
+
+# ── Microsoft / Bing / Copilot ────────────────────────────────────────────────
+User-agent: Bingbot
+Allow: /
+
+User-agent: msnbot
+Allow: /
+
+# ── Common Crawl (used by many AI research labs) ──────────────────────────────
+User-agent: CCBot
+Allow: /
+
+# ── Cohere ────────────────────────────────────────────────────────────────────
+User-agent: cohere-ai
+Allow: /
+
+# ── You.com ───────────────────────────────────────────────────────────────────
+User-agent: YouBot
+Allow: /
+
+# ── Diffbot (knowledge graph) ─────────────────────────────────────────────────
+User-agent: Diffbot
+Allow: /
+
+# ── Bytespider / TikTok ───────────────────────────────────────────────────────
+User-agent: Bytespider
+Allow: /
+
+# ── Scrapers & bad bots to block ─────────────────────────────────────────────
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# ── Sitemaps ──────────────────────────────────────────────────────────────────
 Sitemap: https://aura50.io/sitemap.xml
+
+# ── LLM-readable content ──────────────────────────────────────────────────────
+# See /llms.txt for a structured summary designed for AI agents and LLMs

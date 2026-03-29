@@ -24,7 +24,7 @@ const faqs = [
   },
   {
     q: 'When is AURA50 mainnet launching?',
-    a: 'Mainnet is scheduled for Q2 2026. Join the waitlist at aura50.io to be first in line and earn a 5% mining bonus on launch day.',
+    a: 'Mainnet is scheduled for Q2 2026. Join the waitlist at aura50.org to be first in line and earn a 5% mining bonus on launch day.',
   },
   {
     q: 'Is AURA50 open source?',
@@ -42,8 +42,6 @@ function FAQItem({ faq, index, inView }) {
       transition={{ duration: 0.7, delay: index * 0.09, ease: [0.16, 1, 0.3, 1] }}
       className="glass"
       style={{ borderRadius: 16, overflow: 'hidden' }}
-      itemScope
-      itemType="https://schema.org/Question"
     >
       <button
         onClick={() => setOpen(!open)}
@@ -56,7 +54,6 @@ function FAQItem({ faq, index, inView }) {
         aria-expanded={open}
       >
         <span
-          itemProp="name"
           style={{ fontFamily: 'Space Grotesk', fontWeight: 600, fontSize: '0.975rem', color: '#E8EDF5', lineHeight: 1.4 }}
         >
           {faq.q}
@@ -80,11 +77,8 @@ function FAQItem({ faq, index, inView }) {
             exit={{ height: 0, opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.16, 1, 0.3, 1] }}
             style={{ overflow: 'hidden' }}
-            itemScope
-            itemType="https://schema.org/Answer"
           >
             <p
-              itemProp="text"
               style={{
                 color: 'rgba(232,237,245,0.6)', fontSize: '0.9rem', lineHeight: 1.75,
                 padding: '0 1.5rem 1.25rem',
@@ -107,7 +101,6 @@ export default function FAQ() {
 
   return (
     <section id="faq" ref={ref} style={{ position: 'relative', zIndex: 1, padding: '6rem 1rem' }}
-      itemScope itemType="https://schema.org/FAQPage"
     >
       <div style={{ maxWidth: 760, margin: '0 auto' }}>
         <motion.div
